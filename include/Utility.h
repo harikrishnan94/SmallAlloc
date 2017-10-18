@@ -23,6 +23,11 @@ public:
 	struct Node
 	{
 		Node *next;
+
+		Node *get_next()
+		{
+			return next;
+		}
 	};
 
 	FreeList() : m_head(nullptr)
@@ -79,6 +84,11 @@ public:
 	struct Node
 	{
 		Node *next;
+
+		Node *get_next()
+		{
+			return next;
+		}
 	};
 
 	FreeListAtomic() : m_head(nullptr)
@@ -155,6 +165,16 @@ public:
 			Node *next;
 			Node *first;
 		};
+
+		Node *get_next()
+		{
+			return next;
+		}
+
+		Node *get_prev()
+		{
+			return prev;
+		}
 	};
 
 	List() : m_head()
