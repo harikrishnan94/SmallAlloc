@@ -16,4 +16,5 @@ set(SRC
 # Set project test source files.
 set(TEST_SRC
   "${TEST_SRC_PATH}/testBase.cpp"
+  "${TEST_SRC_PATH}/testUtility.cpp"
 )
