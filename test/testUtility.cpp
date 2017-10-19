@@ -9,7 +9,7 @@
 #include "Utility.h"
 #include "catch.hpp"
 
-#include <unistd.h>
+#include <emmintrin.h>
 #include <thread>
 #include <memory>
 
@@ -183,9 +183,14 @@ TEST_CASE("FreelistAtomic Test", "[utility]")
 		while (!quit.load())
 		{
 			if (fl.pop())
+			{
 				popcount++;
+			}
 			else
-				usleep(10);
+			{
+				for (int i = 0; i < 100; i++)
+					_mm_pause();
+			}
 		}
 
 		while (fl.pop())
