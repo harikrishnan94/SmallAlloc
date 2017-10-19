@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 3.9)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Check if project name has been specified correctly.
 if((NOT PROJECT_NAME))
