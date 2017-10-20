@@ -4,6 +4,7 @@
 
 # Set project source files.
 set(SRC
+  "${SRC_PATH}/BuddyManager.cpp"
   "${SRC_PATH}/SmallAlloc.cpp"
 )
 
