@@ -1,8 +1,8 @@
 #include "BuddyManager.h"
 #include "Utility.h"
 
+#include <algorithm>
 #include <cassert>
-#include <intrin.h>   
 
 
 #ifdef __LINUX__
@@ -14,6 +14,7 @@
 #endif /* __APPLE__ */
 
 #ifdef _WIN32
+#include <intrin.h>
 #define leading_zeroes(x) __lzcnt64(x)
 #endif /* _WIN32 */
 
@@ -50,13 +51,14 @@ private:
 
 
 template <size_t PageSize, size_t MinAllocSize>
-BuddyManager<PageSize, MinAllocSize>::BuddyManager(void *meta, void *chunk) : m_managed_chunk(chunk), m_impl(new (meta) BuddyManagerImpl())
+BuddyManager<PageSize, MinAllocSize>::BuddyManager(void *meta,
+												   void *chunk) : m_managed_chunk(chunk), m_impl(new (meta) BuddyManagerImpl())
 {}
 
 template <size_t PageSize, size_t MinAllocSize>
 void *BuddyManager<PageSize, MinAllocSize>::alloc(size_t size)
 {
-	auto szc = m_impl->get_sizeclass(size);
+	auto szc = m_impl->get_size_class(size);
 	auto freelist = m_impl->get_freelist(szc);
 	void *ret_mem = freelist->pop_front();
 	void *buddy;
@@ -90,12 +92,12 @@ bool BuddyManager<PageSize, MinAllocSize>::free(void *ptr, size_t size)
 	if (size == PageSize)
 		return true;
 
-	auto buddy = m_impl->get_buddy(ret_mem, szc);
+	auto buddy = m_impl->get_buddy(ptr, szc);
 
 	if (m_impl->block_is_free(buddy, szc))
 	{
-		freelist->push_front(ptr);
-		freelist->push_front(buddy);
+		freelist->remove(ptr);
+		freelist->remove(buddy);
 
 		return free(std::min(ptr, buddy), size * 2);
 	}
@@ -109,7 +111,7 @@ constexpr size_t BuddyManager<PageSize, MinAllocSize>::get_meta_size()
 	return sizeof(BuddyManagerImpl);
 }
 
-static size_t log_2(size_t n)
+size_t log_2(size_t n)
 {
 	assert(n > 0);
 	return sizeof(n) * 8 - leading_zeroes(n) - 1;
@@ -118,7 +120,7 @@ static size_t log_2(size_t n)
 template <size_t PageSize, size_t MinAllocSize>
 constexpr Count BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_num_sizeclasses()
 {
-	return log_2(PageSize) - log_2(MinAllocSize);
+	return log_2(PageSize) - log_2(MinAllocSize) + 1;
 }
 
 template <size_t PageSize, size_t MinAllocSize>
@@ -128,7 +130,8 @@ constexpr Size BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_bitma
 }
 
 template <size_t PageSize, size_t MinAllocSize>
-constexpr SizeClass BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_size_class(Size size)
+constexpr SizeClass BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_size_class(
+	Size size)
 {
 	assert(size >= MinAllocSize && size <= PageSize);
 
@@ -144,15 +147,15 @@ constexpr Size BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_size(
 }
 
 template <size_t PageSize, size_t MinAllocSize>
-constexpr Index BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_normalized_ptr(void *ptr)
+constexpr Index BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_normalized_ptr(
+	void *ptr)
 {
 	return reinterpret_cast<size_t>(ptr) & (PageSize - 1);
 }
 
 template <size_t PageSize, size_t MinAllocSize>
-constexpr Index BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_bitmap_index(void *ptr, SizeClass szc)
+constexpr Index BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_bitmap_index(void *ptr,
+																						 SizeClass szc)
 {
-	auto n_ptr = get_normalized_ptr(ptr);
-
-	return bit_map_index = 1 << (get_num_sizeclasses() - (szc + 1)) - 1 + n_ptr / get_size(szc);
+	return (1 << (get_num_sizeclasses() - (szc + 1))) - 1 + get_normalized_ptr(ptr) / get_size(szc);
 }

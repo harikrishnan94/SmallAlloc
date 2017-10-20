@@ -1,6 +1,8 @@
 #ifndef BUDDY_MANAGER_H
 #define BUDDY_MANAGER_H
 
+#include <cstddef>
+
 namespace SmallAlloc
 {
 
