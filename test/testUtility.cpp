@@ -113,6 +113,47 @@ TEST_CASE("List Test", "[utility]")
 	REQUIRE(static_cast<ListNode *>(list.back())->val == 5);
 }
 
+TEST_CASE("Forward List Test", "[utility]")
+{
+	struct ListNode : public ForwardList::Node
+	{
+		long val;
+
+		ListNode() : val(0)
+		{}
+
+		ListNode(long v) : val(v)
+		{}
+	};
+
+	ForwardList list;
+
+	ListNode n1{1};
+	ListNode n2{2};
+	ListNode n3{3};
+
+	list.push(&n1);
+	list.push(&n2);
+	list.push(&n3);
+	REQUIRE(!list.empty());
+
+	REQUIRE(static_cast<ListNode *>(list.pop())->val == 3);
+	REQUIRE(static_cast<ListNode *>(list.pop())->val == 2);
+	REQUIRE(static_cast<ListNode *>(list.pop())->val == 1);
+	REQUIRE(list.empty());
+
+	ListNode n4{4};
+	ListNode n5{5};
+
+	list.push(&n4);
+	list.push(&n5);
+	REQUIRE(!list.empty());
+	list.remove(&n4);
+	REQUIRE(!list.empty());
+	REQUIRE(static_cast<ListNode *>(list.pop())->val == 5);
+	REQUIRE(list.empty());
+}
+
 TEST_CASE("FreelistAtomic Test", "[utility]")
 {
 	using namespace SmallAlloc;

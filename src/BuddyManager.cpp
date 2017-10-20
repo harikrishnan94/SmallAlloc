@@ -32,7 +32,7 @@ struct BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl
 
 	static constexpr SizeClass get_sizeclass(Size size);
 
-	List &get_freelist(SizeClass szc);
+	ForwardList &get_freelist(SizeClass szc);
 	void *get_buddy(void *ptr, SizeClass szc);
 	void mark_block_as_free(void *ptr, SizeClass szc);
 	void mark_block_as_in_use(void *ptr, SizeClass szc);
@@ -46,7 +46,7 @@ private:
 	static constexpr size_t get_normalized_ptr(void *ptr);
 	static constexpr Index get_bitmap_index(void *ptr, SizeClass szc);
 
-	List m_freelist[get_num_sizeclasses()];
+	ForwardList m_freelist[get_num_sizeclasses()];
 	char m_bitmap[get_bitmap_size()];
 };
 
@@ -171,7 +171,7 @@ constexpr Index BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_bitm
 }
 
 template <size_t PageSize, size_t MinAllocSize>
-List &BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_freelist(SizeClass szc)
+ForwardList &BuddyManager<PageSize, MinAllocSize>::BuddyManagerImpl::get_freelist(SizeClass szc)
 {
 	return m_freelist[szc];
 }

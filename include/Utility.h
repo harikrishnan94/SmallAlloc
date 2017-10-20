@@ -77,6 +77,96 @@ private:
 };
 
 
+class ForwardList
+{
+public:
+
+	struct Node
+	{
+		Node *next;
+		Node *prev;
+
+		Node *get_next()
+		{
+			return next;
+		}
+
+		Node *get_prev()
+		{
+			return prev;
+		}
+	};
+
+	ForwardList() : m_head(nullptr)
+	{
+		static_assert(std::is_pod<Node>::value == true, "ForwardList::Node cannot laid as POD");
+	}
+
+	bool empty()
+	{
+		return m_head == nullptr;
+	}
+
+	void remove(Node *node)
+	{
+		if (m_head == node)
+		{
+			pop();
+			return;
+		}
+
+		node->prev->next = node->next;
+
+		if (node->next)
+			node->next->prev = node;
+	}
+
+	void push(Node *node)
+	{
+		node->prev = nullptr;
+		node->next = m_head;
+
+		if (m_head)
+			node->next->prev = node;
+
+		m_head = node;
+	}
+
+	Node *pop()
+	{
+		auto head = m_head;
+
+		if (head)
+		{
+			m_head = m_head->next;
+
+			if (m_head)
+				m_head->prev = nullptr;
+
+			return head;
+		}
+
+		return nullptr;
+	}
+
+	Node *popAll()
+	{
+		auto head = m_head;
+
+		if (head)
+		{
+			m_head = nullptr;
+			return head;
+		}
+
+		return nullptr;
+	}
+
+private:
+	Node *m_head;
+};
+
+
 class FreeListAtomic
 {
 public:
