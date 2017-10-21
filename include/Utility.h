@@ -40,6 +40,11 @@ public:
 		return m_head == nullptr;
 	}
 
+	Node *peek()
+	{
+		return m_head;
+	}
+
 	void push(Node *node)
 	{
 		node->next = m_head;
@@ -107,6 +112,11 @@ public:
 		return m_head == nullptr;
 	}
 
+	Node *peek()
+	{
+		return m_head;
+	}
+
 	void remove(Node *node)
 	{
 		if (m_head == node)
@@ -118,7 +128,7 @@ public:
 		node->prev->next = node->next;
 
 		if (node->next)
-			node->next->prev = node;
+			node->next->prev = node->prev;
 	}
 
 	void push(Node *node)
@@ -189,6 +199,11 @@ public:
 	bool empty()
 	{
 		return m_head.load(std::memory_order_acquire) == nullptr;
+	}
+
+	Node *peek()
+	{
+		return m_head.load(std::memory_order_acquire);
 	}
 
 	void push(Node *node)

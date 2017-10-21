@@ -4,7 +4,6 @@
 
 # Set project source files.
 set(SRC
-  "${SRC_PATH}/BuddyManager.cpp"
   "${SRC_PATH}/SmallAlloc.cpp"
 )
 
@@ -18,4 +17,5 @@ set(SRC
 set(TEST_SRC
   "${TEST_SRC_PATH}/testBase.cpp"
   "${TEST_SRC_PATH}/testUtility.cpp"
+  "${TEST_SRC_PATH}/testBuddyManager.cpp"
 )
