@@ -23,16 +23,14 @@
 
 namespace SmallAlloc
 {
-namespace Aliases
+
+namespace
 {
 using Count = size_t;
 using Size = size_t;
 using SizeClass = size_t;
 using Index = size_t;
-
 }
-
-using namespace Aliases;
 
 template <size_t PageSize, size_t MinAllocSize>
 class BuddyManager
@@ -152,7 +150,8 @@ constexpr SizeClass BuddyManager<PageSize, MinAllocSize>::get_sizeclass(Size siz
 }
 
 template <size_t PageSize, size_t MinAllocSize>
-constexpr Size BuddyManager<PageSize, MinAllocSize>::get_size(SizeClass szc)
+constexpr Size BuddyManager<PageSize, MinAllocSize>::get_size(
+	SizeClass szc)
 {
 	assert(szc < get_num_sizeclasses());
 
