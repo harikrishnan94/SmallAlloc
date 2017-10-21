@@ -205,7 +205,7 @@ TEST_CASE("FreelistAtomic Test", "[utility]")
 	std::vector<std::thread> workers;
 	std::atomic_bool quit(0);
 	uint64_t popcount = 0;
-	uint32_t node_count = 600 * 1000;
+	uint32_t node_count = 100 * 1000;
 	uint64_t expected_popcount = uint64_t{node_count} * (MAX_THREADS - 1);
 
 	std::unique_ptr<std::vector<FLNode>[]> node_vectors = std::make_unique<std::vector<FLNode>[]>
