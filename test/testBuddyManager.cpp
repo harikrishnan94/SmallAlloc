@@ -22,12 +22,8 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 
 	constexpr auto BuddyPageSize = 16 * 1024;
 	constexpr auto MinAllocSize = 16;
-	auto buddy_manager_meta_size =
-		SmallAlloc::BuddyManager<BuddyPageSize, MinAllocSize>::get_meta_size();
-	auto buddy_manager_meta = new char[buddy_manager_meta_size];
 	auto buddy_managed_chunk = new char[BuddyPageSize];
-	SmallAlloc::BuddyManager<BuddyPageSize, MinAllocSize> buddy_manager(buddy_manager_meta,
-																		buddy_managed_chunk);
+	SmallAlloc::BuddyManager<BuddyPageSize, MinAllocSize> buddy_manager(buddy_managed_chunk);
 
 	unordered_map<void *, size_t> ptr_set;
 
