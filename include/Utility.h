@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <atomic>
 #include <type_traits>
+#include <emmintrin.h>
 
 namespace SmallAlloc
 {
@@ -215,6 +216,8 @@ public:
 
 			if (m_head.compare_exchange_weak(head, node, std::memory_order_release))
 				break;
+
+			_mm_pause();
 		}
 	}
 
@@ -231,6 +234,8 @@ public:
 
 			if (m_head.compare_exchange_weak(head, next, std::memory_order_release))
 				return head;
+
+			_mm_pause();
 		}
 	}
 
@@ -245,6 +250,8 @@ public:
 
 			if (m_head.compare_exchange_weak(head, nullptr, std::memory_order_release))
 				return head;
+
+			_mm_pause();
 		}
 	}
 
