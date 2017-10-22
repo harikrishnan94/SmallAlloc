@@ -32,11 +32,12 @@ using SizeClass = size_t;
 using Index = size_t;
 }
 
-template <size_t PageSize, size_t MinAllocSize>
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
 class BuddyManager
 {
 public:
 	BuddyManager(void *chunk);
+	BuddyManager(void *chunk, void *freelist);
 
 	void *alloc(size_t size);
 	bool free(void *ptr, size_t size);
@@ -57,20 +58,38 @@ private:
 	bool block_is_free(void *ptr, SizeClass szc);
 
 	void *m_managed_chunk;
-	ForwardList m_freelist[get_num_sizeclasses()];
 	char m_bitmap[get_bitmap_size()];
+	ForwardList *m_freelist;
+	ForwardList freelist_array[OwnFreelist ? get_num_sizeclasses() : 0];
 };
 
-template <size_t PageSize, size_t MinAllocSize>
-BuddyManager<PageSize, MinAllocSize>::BuddyManager(void *chunk) : m_managed_chunk(chunk)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+BuddyManager<PageSize, MinAllocSize, OwnFreelist>::BuddyManager(
+	void *chunk) : m_managed_chunk(chunk)
 {
+	static_assert(OwnFreelist, "Freelist not passed with OwnFreelist == false");
+
+	m_freelist = this->freelist_array;
+
+	auto &freelist = get_freelist(get_sizeclass(PageSize));
+	freelist.push(static_cast<ForwardList::Node *>(chunk));
+
+	memset(m_bitmap, 0, get_bitmap_size());
+}
+
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+BuddyManager<PageSize, MinAllocSize, OwnFreelist>::BuddyManager(void *chunk, void *fl)
+	: m_managed_chunk(chunk), m_freelist(static_cast<ForwardList *>(fl))
+{
+	static_assert(!OwnFreelist, "Freelist passed with OwnFreelist == true");
+
 	auto &freelist = get_freelist(get_sizeclass(PageSize));
 	freelist.push(static_cast<ForwardList::Node *>(chunk));
 	memset(m_bitmap, 0, get_bitmap_size());
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-void *BuddyManager<PageSize, MinAllocSize>::alloc(size_t size)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+void *BuddyManager<PageSize, MinAllocSize, OwnFreelist>::alloc(size_t size)
 {
 	if (size > PageSize || size < MinAllocSize)
 		return nullptr;
@@ -96,8 +115,8 @@ found:
 	return ret_mem;
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-bool BuddyManager<PageSize, MinAllocSize>::free(void *ptr, size_t size)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+bool BuddyManager<PageSize, MinAllocSize, OwnFreelist>::free(void *ptr, size_t size)
 {
 	auto szc = get_sizeclass(size);
 	auto &freelist = get_freelist(szc);
@@ -129,50 +148,50 @@ constexpr size_t log_2(size_t n)
 	return sizeof(n) * 8 - lz - 1;
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-constexpr Count BuddyManager<PageSize, MinAllocSize>::get_num_sizeclasses()
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+constexpr Count BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_num_sizeclasses()
 {
 	return log_2(PageSize) - log_2(MinAllocSize) + 1;
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-constexpr Size BuddyManager<PageSize, MinAllocSize>::get_bitmap_size()
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+constexpr Size BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_bitmap_size()
 {
 	return ((PageSize / MinAllocSize) * 2) / 8;
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-constexpr SizeClass BuddyManager<PageSize, MinAllocSize>::get_sizeclass(Size size)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+constexpr SizeClass BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_sizeclass(Size size)
 {
 	assert(size >= MinAllocSize && size <= PageSize);
 
 	return log_2(size) - log_2(MinAllocSize);
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-constexpr Size BuddyManager<PageSize, MinAllocSize>::get_size(
-	SizeClass szc)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+constexpr Size BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_size(SizeClass szc)
 {
 	assert(szc < get_num_sizeclasses());
 
 	return MinAllocSize * (1 << szc);
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-Index BuddyManager<PageSize, MinAllocSize>::get_bitmap_index(void *ptr, SizeClass szc)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+Index BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_bitmap_index(void *ptr,
+																		  SizeClass szc)
 {
 	auto ptr_offset = static_cast<char *>(ptr) - static_cast<char *>(m_managed_chunk);
 	return (1 << (get_num_sizeclasses() - (szc + 1))) - 1 + ptr_offset / get_size(szc);
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-ForwardList &BuddyManager<PageSize, MinAllocSize>::get_freelist(SizeClass szc)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+ForwardList &BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_freelist(SizeClass szc)
 {
 	return m_freelist[szc];
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-void *BuddyManager<PageSize, MinAllocSize>::get_buddy(void *ptr, SizeClass szc)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+void *BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_buddy(void *ptr, SizeClass szc)
 {
 	auto ptr_offset = static_cast<char *>(ptr) - static_cast<char *>(m_managed_chunk);
 	auto size = get_size(szc);
@@ -181,8 +200,9 @@ void *BuddyManager<PageSize, MinAllocSize>::get_buddy(void *ptr, SizeClass szc)
 	return static_cast<void *>(static_cast<char *>(m_managed_chunk) + ((n_ptr ^ 0x1) << log_2(size)));
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-void BuddyManager<PageSize, MinAllocSize>::mark_block_as_free(void *ptr, SizeClass szc)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+void BuddyManager<PageSize, MinAllocSize, OwnFreelist>::mark_block_as_free(void *ptr,
+																		   SizeClass szc)
 {
 	auto bitmap_index = get_bitmap_index(ptr, szc);
 	auto bitmap_byte = bitmap_index / 8;
@@ -193,8 +213,9 @@ void BuddyManager<PageSize, MinAllocSize>::mark_block_as_free(void *ptr, SizeCla
 	m_bitmap[bitmap_byte] &= ~(1 << bitmap_bit);
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-void BuddyManager<PageSize, MinAllocSize>::mark_block_as_in_use(void *ptr, SizeClass szc)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+void BuddyManager<PageSize, MinAllocSize, OwnFreelist>::mark_block_as_in_use(void *ptr,
+																			 SizeClass szc)
 {
 	auto bitmap_index = get_bitmap_index(ptr, szc);
 	auto bitmap_byte = bitmap_index / 8;
@@ -205,8 +226,8 @@ void BuddyManager<PageSize, MinAllocSize>::mark_block_as_in_use(void *ptr, SizeC
 	m_bitmap[bitmap_byte] |= (1 << bitmap_bit);
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-bool BuddyManager<PageSize, MinAllocSize>::block_is_free(void *ptr, SizeClass szc)
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+bool BuddyManager<PageSize, MinAllocSize, OwnFreelist>::block_is_free(void *ptr, SizeClass szc)
 {
 	auto bitmap_index = get_bitmap_index(ptr, szc);
 	auto bitmap_byte = bitmap_index / 8;
@@ -215,8 +236,8 @@ bool BuddyManager<PageSize, MinAllocSize>::block_is_free(void *ptr, SizeClass sz
 	return (m_bitmap[bitmap_byte] & (1 << bitmap_bit)) == false;
 }
 
-template <size_t PageSize, size_t MinAllocSize>
-void BuddyManager<PageSize, MinAllocSize>::get_allocable_sizes(
+template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
+void BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_allocable_sizes(
 	std::vector<std::pair<size_t, size_t>> &allocable_sizes)
 {
 	for (Size size = MinAllocSize; size <= PageSize; size *= 2)
