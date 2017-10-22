@@ -50,7 +50,7 @@ private:
 	static constexpr Size get_size(SizeClass szc);
 	static constexpr SizeClass get_sizeclass(Size size);
 
-	ForwardList &get_freelist(SizeClass szc);
+	utility::ForwardList &get_freelist(SizeClass szc);
 	Index get_bitmap_index(void *ptr, SizeClass szc);
 	void mark_block_as_free(void *ptr, SizeClass szc);
 	void *get_buddy(void *ptr, SizeClass szc);
@@ -59,8 +59,8 @@ private:
 
 	void *m_managed_chunk;
 	char m_bitmap[get_bitmap_size()];
-	ForwardList *m_freelist;
-	ForwardList freelist_array[OwnFreelist ? get_num_sizeclasses() : 0];
+	utility::ForwardList *m_freelist;
+	utility::ForwardList freelist_array[OwnFreelist ? get_num_sizeclasses() : 0];
 };
 
 template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
@@ -72,19 +72,19 @@ BuddyManager<PageSize, MinAllocSize, OwnFreelist>::BuddyManager(
 	m_freelist = this->freelist_array;
 
 	auto &freelist = get_freelist(get_sizeclass(PageSize));
-	freelist.push(static_cast<ForwardList::Node *>(chunk));
+	freelist.push(static_cast<utility::ForwardList::Node *>(chunk));
 
 	memset(m_bitmap, 0, get_bitmap_size());
 }
 
 template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
 BuddyManager<PageSize, MinAllocSize, OwnFreelist>::BuddyManager(void *chunk, void *fl)
-	: m_managed_chunk(chunk), m_freelist(static_cast<ForwardList *>(fl))
+	: m_managed_chunk(chunk), m_freelist(static_cast<utility::ForwardList *>(fl))
 {
 	static_assert(!OwnFreelist, "Freelist passed with OwnFreelist == true");
 
 	auto &freelist = get_freelist(get_sizeclass(PageSize));
-	freelist.push(static_cast<ForwardList::Node *>(chunk));
+	freelist.push(static_cast<utility::ForwardList::Node *>(chunk));
 	memset(m_bitmap, 0, get_bitmap_size());
 }
 
@@ -108,7 +108,7 @@ void *BuddyManager<PageSize, MinAllocSize, OwnFreelist>::alloc(size_t size)
 		return nullptr;
 
 	buddy = get_buddy(ret_mem, szc);
-	freelist.push(static_cast<ForwardList::Node *>(buddy));
+	freelist.push(static_cast<utility::ForwardList::Node *>(buddy));
 
 found:
 	mark_block_as_in_use(ret_mem, szc);
@@ -125,7 +125,7 @@ bool BuddyManager<PageSize, MinAllocSize, OwnFreelist>::free(void *ptr, size_t s
 
 	if (size == PageSize)
 	{
-		freelist.push(static_cast<ForwardList::Node *>(ptr));
+		freelist.push(static_cast<utility::ForwardList::Node *>(ptr));
 		return true;
 	}
 
@@ -133,11 +133,11 @@ bool BuddyManager<PageSize, MinAllocSize, OwnFreelist>::free(void *ptr, size_t s
 
 	if (block_is_free(buddy, szc))
 	{
-		freelist.remove(static_cast<ForwardList::Node *>(buddy));
+		freelist.remove(static_cast<utility::ForwardList::Node *>(buddy));
 		return free(std::min(ptr, buddy), size * 2);
 	}
 
-	freelist.push(static_cast<ForwardList::Node *>(ptr));
+	freelist.push(static_cast<utility::ForwardList::Node *>(ptr));
 	return false;
 }
 
@@ -185,7 +185,7 @@ Index BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_bitmap_index(void *
 }
 
 template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
-ForwardList &BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_freelist(SizeClass szc)
+utility::ForwardList &BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_freelist(SizeClass szc)
 {
 	return m_freelist[szc];
 }

@@ -17,6 +17,8 @@
 namespace SmallAlloc
 {
 
+namespace utility
+{
 class FreeList
 {
 public:
@@ -366,6 +368,7 @@ private:
 	Node m_head;
 };
 
+}
 }
 
 #endif /* FREELIST_H */

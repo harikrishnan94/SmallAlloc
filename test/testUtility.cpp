@@ -7,13 +7,17 @@
 
 
 #include "Utility/IList.h"
+#include "Utility/PointerHashMap.h"
 #include "test/catch.hpp"
 
 #include <emmintrin.h>
 #include <thread>
 #include <memory>
+#include <unordered_map>
+#include <random>
+#include <iostream>
 
-using namespace SmallAlloc;
+using namespace SmallAlloc::utility;
 
 TEST_CASE("Freelist Test", "[utility]")
 {
@@ -266,4 +270,56 @@ TEST_CASE("FreelistAtomic Test", "[utility]")
 	workers[MAX_THREADS - 1].join();
 
 	REQUIRE(popcount == expected_popcount);
+}
+
+TEST_CASE("PointerHashMapTest", "[utility]")
+{
+	using namespace std;
+
+	constexpr uint64_t NUM_KEYS = 100 * 1000;
+	constexpr uint64_t NUM_DISTINCT_KEYS = NUM_KEYS / 2;
+	PointerHashMap pmap;
+	std::unordered_map<void *, void *> map;
+
+	std::random_device r;
+	std::seed_seq seed{r(), r(), r(), r(), r(), r(), r(), r()};
+	std::mt19937_64 rand(seed);
+
+	for (uint64_t i = 0; i < NUM_KEYS; i++)
+	{
+		auto r = rand() % NUM_DISTINCT_KEYS;
+		auto ptr_key = reinterpret_cast<void *>(r ? r : 1);
+		auto ptr_val = reinterpret_cast<void *>(i ? i : 1);
+
+		if (map.count(ptr_key) == 0)
+		{
+			map.insert({ptr_key, ptr_val});
+			REQUIRE(pmap.insert(ptr_key, ptr_val) == true);
+		}
+		else
+		{
+			REQUIRE(pmap.insert(ptr_key, ptr_val) == false);
+			REQUIRE(pmap.find(ptr_key) != nullptr);
+			REQUIRE(pmap.erase(ptr_key) == true);
+			REQUIRE(pmap.insert(ptr_key, ptr_val) == true);
+			map.erase(ptr_key);
+			map.insert({ptr_key, ptr_val});
+		}
+
+		REQUIRE(pmap.size() == map.size());
+	}
+
+	REQUIRE(pmap.size() == map.size());
+	pmap.dump();
+
+	for (auto &kv : map)
+	{
+		REQUIRE(pmap.find(kv.first) == kv.second);
+		REQUIRE(pmap.erase(kv.first) == true);
+	}
+
+	REQUIRE(pmap.size() == 0);
+	REQUIRE(pmap.insert(nullptr, nullptr) == false);
+	REQUIRE(pmap.find(nullptr) == nullptr);
+	REQUIRE(pmap.erase(nullptr) == false);
 }
