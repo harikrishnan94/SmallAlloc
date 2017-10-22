@@ -6,14 +6,18 @@
  */
 
 
-#include "Utility.h"
-#include "catch.hpp"
+#include "Utility/IList.h"
+#include "Utility/PointerHashMap.h"
+#include "test/catch.hpp"
 
 #include <emmintrin.h>
 #include <thread>
 #include <memory>
+#include <unordered_map>
+#include <random>
+#include <iostream>
 
-using namespace SmallAlloc;
+using namespace SmallAlloc::utility;
 
 TEST_CASE("Freelist Test", "[utility]")
 {
@@ -113,6 +117,47 @@ TEST_CASE("List Test", "[utility]")
 	REQUIRE(static_cast<ListNode *>(list.back())->val == 5);
 }
 
+TEST_CASE("Forward List Test", "[utility]")
+{
+	struct ListNode : public ForwardList::Node
+	{
+		long val;
+
+		ListNode() : val(0)
+		{}
+
+		ListNode(long v) : val(v)
+		{}
+	};
+
+	ForwardList list;
+
+	ListNode n1{1};
+	ListNode n2{2};
+	ListNode n3{3};
+
+	list.push(&n1);
+	list.push(&n2);
+	list.push(&n3);
+	REQUIRE(!list.empty());
+
+	REQUIRE(static_cast<ListNode *>(list.pop())->val == 3);
+	REQUIRE(static_cast<ListNode *>(list.pop())->val == 2);
+	REQUIRE(static_cast<ListNode *>(list.pop())->val == 1);
+	REQUIRE(list.empty());
+
+	ListNode n4{4};
+	ListNode n5{5};
+
+	list.push(&n4);
+	list.push(&n5);
+	REQUIRE(!list.empty());
+	list.remove(&n4);
+	REQUIRE(!list.empty());
+	REQUIRE(static_cast<ListNode *>(list.pop())->val == 5);
+	REQUIRE(list.empty());
+}
+
 TEST_CASE("FreelistAtomic Test", "[utility]")
 {
 	using namespace SmallAlloc;
@@ -164,7 +209,7 @@ TEST_CASE("FreelistAtomic Test", "[utility]")
 	std::vector<std::thread> workers;
 	std::atomic_bool quit(0);
 	uint64_t popcount = 0;
-	uint32_t node_count = 600 * 1000;
+	uint32_t node_count = 100 * 1000;
 	uint64_t expected_popcount = uint64_t{node_count} * (MAX_THREADS - 1);
 
 	std::unique_ptr<std::vector<FLNode>[]> node_vectors = std::make_unique<std::vector<FLNode>[]>
@@ -225,4 +270,56 @@ TEST_CASE("FreelistAtomic Test", "[utility]")
 	workers[MAX_THREADS - 1].join();
 
 	REQUIRE(popcount == expected_popcount);
+}
+
+TEST_CASE("PointerHashMapTest", "[utility]")
+{
+	using namespace std;
+
+	constexpr uint64_t NUM_KEYS = 100 * 1000;
+	constexpr uint64_t NUM_DISTINCT_KEYS = NUM_KEYS / 2;
+	PointerHashMap pmap;
+	std::unordered_map<void *, void *> map;
+
+	std::random_device r;
+	std::seed_seq seed{r(), r(), r(), r(), r(), r(), r(), r()};
+	std::mt19937_64 rand(seed);
+
+	for (uint64_t i = 0; i < NUM_KEYS; i++)
+	{
+		auto r = rand() % NUM_DISTINCT_KEYS;
+		auto ptr_key = reinterpret_cast<void *>(r ? r : 1);
+		auto ptr_val = reinterpret_cast<void *>(i ? i : 1);
+
+		if (map.count(ptr_key) == 0)
+		{
+			map.insert({ptr_key, ptr_val});
+			REQUIRE(pmap.insert(ptr_key, ptr_val) == true);
+		}
+		else
+		{
+			REQUIRE(pmap.insert(ptr_key, ptr_val) == false);
+			REQUIRE(pmap.find(ptr_key) != nullptr);
+			REQUIRE(pmap.erase(ptr_key) == true);
+			REQUIRE(pmap.insert(ptr_key, ptr_val) == true);
+			map.erase(ptr_key);
+			map.insert({ptr_key, ptr_val});
+		}
+
+		REQUIRE(pmap.size() == map.size());
+	}
+
+	REQUIRE(pmap.size() == map.size());
+	pmap.dump();
+
+	for (auto &kv : map)
+	{
+		REQUIRE(pmap.find(kv.first) == kv.second);
+		REQUIRE(pmap.erase(kv.first) == true);
+	}
+
+	REQUIRE(pmap.size() == 0);
+	REQUIRE(pmap.insert(nullptr, nullptr) == false);
+	REQUIRE(pmap.find(nullptr) == nullptr);
+	REQUIRE(pmap.erase(nullptr) == false);
 }

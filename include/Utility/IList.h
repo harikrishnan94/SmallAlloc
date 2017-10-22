@@ -1,5 +1,5 @@
 /**
- * File: /Utility.h
+ * File: /IList.h
  * Project: SmallAlloc
  * Created Date: Tuesday, October 17th 2017, 7:33:03 pm
  * Author: Harikrishnan
@@ -12,10 +12,13 @@
 #include <cstddef>
 #include <atomic>
 #include <type_traits>
+#include <emmintrin.h>
 
 namespace SmallAlloc
 {
 
+namespace utility
+{
 class FreeList
 {
 public:
@@ -40,6 +43,11 @@ public:
 		return m_head == nullptr;
 	}
 
+	Node *peek()
+	{
+		return m_head;
+	}
+
 	void push(Node *node)
 	{
 		node->next = m_head;
@@ -53,6 +61,101 @@ public:
 		if (head)
 		{
 			m_head = m_head->next;
+			return head;
+		}
+
+		return nullptr;
+	}
+
+	Node *popAll()
+	{
+		auto head = m_head;
+
+		if (head)
+		{
+			m_head = nullptr;
+			return head;
+		}
+
+		return nullptr;
+	}
+
+private:
+	Node *m_head;
+};
+
+
+class ForwardList
+{
+public:
+
+	struct Node
+	{
+		Node *next;
+		Node *prev;
+
+		Node *get_next()
+		{
+			return next;
+		}
+
+		Node *get_prev()
+		{
+			return prev;
+		}
+	};
+
+	ForwardList() : m_head(nullptr)
+	{
+		static_assert(std::is_pod<Node>::value == true, "ForwardList::Node cannot laid as POD");
+	}
+
+	bool empty()
+	{
+		return m_head == nullptr;
+	}
+
+	Node *peek()
+	{
+		return m_head;
+	}
+
+	void remove(Node *node)
+	{
+		if (m_head == node)
+		{
+			pop();
+			return;
+		}
+
+		node->prev->next = node->next;
+
+		if (node->next)
+			node->next->prev = node->prev;
+	}
+
+	void push(Node *node)
+	{
+		node->prev = nullptr;
+		node->next = m_head;
+
+		if (m_head)
+			node->next->prev = node;
+
+		m_head = node;
+	}
+
+	Node *pop()
+	{
+		auto head = m_head;
+
+		if (head)
+		{
+			m_head = m_head->next;
+
+			if (m_head)
+				m_head->prev = nullptr;
+
 			return head;
 		}
 
@@ -101,6 +204,11 @@ public:
 		return m_head.load(std::memory_order_acquire) == nullptr;
 	}
 
+	Node *peek()
+	{
+		return m_head.load(std::memory_order_acquire);
+	}
+
 	void push(Node *node)
 	{
 		while (true)
@@ -110,6 +218,8 @@ public:
 
 			if (m_head.compare_exchange_weak(head, node, std::memory_order_release))
 				break;
+
+			_mm_pause();
 		}
 	}
 
@@ -126,6 +236,8 @@ public:
 
 			if (m_head.compare_exchange_weak(head, next, std::memory_order_release))
 				return head;
+
+			_mm_pause();
 		}
 	}
 
@@ -140,6 +252,8 @@ public:
 
 			if (m_head.compare_exchange_weak(head, nullptr, std::memory_order_release))
 				return head;
+
+			_mm_pause();
 		}
 	}
 
@@ -254,6 +368,7 @@ private:
 	Node m_head;
 };
 
+}
 }
 
 #endif /* FREELIST_H */
