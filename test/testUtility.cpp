@@ -6,8 +6,8 @@
  */
 
 
-#include "Utility.h"
-#include "catch.hpp"
+#include "Utility/IList.h"
+#include "test/catch.hpp"
 
 #include <emmintrin.h>
 #include <thread>

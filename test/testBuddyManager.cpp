@@ -7,7 +7,7 @@
 
 
 #include "BuddyManager.h"
-#include "catch.hpp"
+#include "test/catch.hpp"
 
 #include <memory>
 #include <cstdlib>

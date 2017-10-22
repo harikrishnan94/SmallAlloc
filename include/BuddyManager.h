@@ -1,7 +1,7 @@
 #ifndef BUDDY_MANAGER_H
 #define BUDDY_MANAGER_H
 
-#include "Utility.h"
+#include "Utility/IList.h"
 
 #include <cstddef>
 #include <algorithm>
