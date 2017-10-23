@@ -141,17 +141,35 @@ bool BuddyManager<PageSize, MinAllocSize, OwnFreelist>::free(void *ptr, size_t s
 	return false;
 }
 
-constexpr size_t log_2(size_t n)
+static size_t log_2(size_t n)
 {
 	assert(n > 0);
 	auto lz = leading_zeroes(n);
 	return sizeof(n) * 8 - lz - 1;
 }
 
+constexpr size_t const_log_2(size_t n)
+{
+	assert(n > 0);
+
+	size_t lz = 0;
+
+	while (n)
+	{
+		if (n >> (sizeof(n) * 8 - 1))
+			break;
+
+		lz++;
+		n <<= 1;
+	}
+
+	return sizeof(n) * 8 - lz - 1;
+}
+
 template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
 constexpr Count BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_num_sizeclasses()
 {
-	return log_2(PageSize) - log_2(MinAllocSize) + 1;
+	return const_log_2(PageSize) - const_log_2(MinAllocSize) + 1;
 }
 
 template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>
@@ -173,7 +191,7 @@ constexpr Size BuddyManager<PageSize, MinAllocSize, OwnFreelist>::get_size(SizeC
 {
 	assert(szc < get_num_sizeclasses());
 
-	return MinAllocSize * (1 << szc);
+	return MinAllocSize * (1ULL << szc);
 }
 
 template <size_t PageSize, size_t MinAllocSize, bool OwnFreelist>

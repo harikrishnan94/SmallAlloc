@@ -100,7 +100,9 @@ endif(CMAKE_COMPILER_IS_GNUCXX)
 
 find_program(GCOV gcov)
 if(GCOV)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+	if (NOT MSVC)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+	endif (NOT MSVC)
 endif(GCOV)
 
 include(ProjectFiles.cmake)
