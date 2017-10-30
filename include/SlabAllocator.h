@@ -18,29 +18,29 @@ public:
 	using AlignedAlloc = std::function<std::pair<void *, void *> (Size, Size)>;
 	using Free = std::function<void (void *extra, void *page, Size)>;
 
-	SlabAllocator(Size alloc_size, Size page_size, AlignedAlloc aligned_alloc_page,
-				  Free free_page) :
-		m_aligned_alloc_page(aligned_alloc_page), m_free_page(free_page),
-		m_alloc_size(alloc_size), m_page_size(page_size), m_freelist(), m_zerofree_list()
-	{}
+	SlabAllocator(uint32_t alloc_size, uint32_t page_size, AlignedAlloc aligned_alloc_page,
+				  Free free_page);
 
 	void *alloc();
 	void free(void *ptr);
 	void remote_free(void *ptr);
+	bool reclaim_remote_free();
 	Size size();
 
 private:
 
 	using SlabFreeList = utility::List;
+	using SlabRemoteFreeList = utility::FreeListAtomic;
 
 	const AlignedAlloc m_aligned_alloc_page;
 	const Free m_free_page;
 	const Size m_alloc_size;
 	const Size m_page_size;
-	SlabFreeList m_freelist;
-	SlabFreeList m_zerofree_list;
-	Count m_max_chunks = 0;
+	const Count m_max_alloc_count;
 	Count page_count = 0;
+	SlabFreeList m_freelist;
+	SlabFreeList m_fullpages_list;
+	SlabRemoteFreeList m_remote_freelist;
 
 	struct SlabPageHeader;
 

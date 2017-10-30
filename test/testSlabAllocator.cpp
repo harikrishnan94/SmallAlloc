@@ -56,9 +56,22 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 
 	constexpr int Low = 1, High = 100;
 	std::uniform_int_distribution<int> uniform_dist(Low, High);
-	auto is_alloc = [](auto val)
+	enum
 	{
-		return val > 30;
+		ALLOC,
+		FREE,
+		REMOTE_FREE
+	};
+
+	auto alloc_type = [](auto val)
+	{
+		if (val > 30)
+			return ALLOC;
+
+		if (val < 15)
+			return FREE;
+
+		return REMOTE_FREE;
 	};
 	auto gen_op = [&rand_op, &uniform_dist]()
 	{
@@ -69,23 +82,42 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 
 	for (int i = 0; i < testIterations; i++)
 	{
-		if (is_alloc(gen_op()))
+		switch (alloc_type(gen_op()))
 		{
-			auto mem = slab.alloc();
-
-			REQUIRE(mem != nullptr);
-			REQUIRE(ptr_set.count(mem) == 0);
-			ptr_set.insert(mem);
-		}
-		else
-		{
-			auto iter = ptr_set.begin();
-
-			if (iter != ptr_set.end())
+			case ALLOC:
 			{
-				auto mem = *iter;
-				ptr_set.erase(mem);
-				slab.free(mem);
+				auto mem = slab.alloc();
+
+				REQUIRE(mem != nullptr);
+				REQUIRE(ptr_set.count(mem) == 0);
+				ptr_set.insert(mem);
+				break;
+			}
+
+			case FREE:
+			{
+				auto iter = ptr_set.begin();
+
+				if (iter != ptr_set.end())
+				{
+					auto mem = *iter;
+					ptr_set.erase(mem);
+					slab.free(mem);
+				}
+
+				break;
+			}
+
+			case REMOTE_FREE:
+			{
+				auto iter = ptr_set.begin();
+
+				if (iter != ptr_set.end())
+				{
+					auto mem = *iter;
+					ptr_set.erase(mem);
+					slab.remote_free(mem);
+				}
 			}
 		}
 	}
@@ -93,5 +125,16 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 	for (auto ptr : ptr_set)
 		slab.free(ptr);
 
+	slab.reclaim_remote_free();
+
 	REQUIRE(slab.size() == 0);
+
+	SlabAllocator dummy{SlabAllocSize, SlabPageSize, [](Size, Size)
+	{
+		void *null = nullptr;
+		return std::make_pair(null, null);
+	}, [](void *, void *, Size) {}};
+
+	REQUIRE(dummy.alloc() == nullptr);
+	REQUIRE(dummy.size() == 0);
 }
