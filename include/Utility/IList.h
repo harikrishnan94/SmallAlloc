@@ -10,6 +10,7 @@
 #define FREELIST_H
 
 #include <cstddef>
+#include <cassert>
 #include <atomic>
 #include <type_traits>
 #include <emmintrin.h>
@@ -184,15 +185,7 @@ class FreeListAtomic
 {
 public:
 
-	struct Node
-	{
-		Node *next;
-
-		Node *get_next()
-		{
-			return next;
-		}
-	};
+	using Node = FreeList::Node;
 
 	FreeListAtomic() : m_head(nullptr)
 	{

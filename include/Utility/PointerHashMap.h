@@ -12,6 +12,7 @@
 #include <memory>
 #include <cstddef>
 #include <string>
+#include <iterator>
 
 namespace SmallAlloc
 {
@@ -37,12 +38,26 @@ public:
 	count_t size();
 	std::string dump();
 
-private:
 	struct Cell
 	{
 		pointer_t key;
 		pointer_t val;
 	};
+
+	using iterator = Cell *;
+	using const_iterator = const Cell *;
+
+	iterator begin()
+	{
+		return &m_buckets[0];
+	}
+
+	iterator end()
+	{
+		return &m_buckets[m_num_buckets];
+	}
+
+private:
 
 	std::unique_ptr<Cell[]> m_buckets;
 	count_t m_num_buckets;
