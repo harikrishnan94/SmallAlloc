@@ -13,7 +13,6 @@
 
 #include <cstddef>
 #include <algorithm>
-#include <vector>
 #include <cassert>
 
 #ifdef __LINUX__

@@ -112,8 +112,8 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 	using namespace std;
 
 	using BuddyManager = SmallAlloc::BuddyManager::BuddyManager;
-	constexpr auto BuddyManagerAllocLimit = 1 * 1024 * 1024 * 1024;
-	constexpr auto AllocLimit = 100 * 1024 * 1024;
+	constexpr auto BuddyManagerAllocLimit = 28 * 1024 * 1024;
+	constexpr auto AllocLimit = BuddyManagerAllocLimit - 2 * 1024 * 1024;
 	std::random_device r;
 	std::seed_seq seed{r(), r(), r(), r(), r(), r(), r(), r()};
 	random_gen rand_mem(seed);
@@ -145,9 +145,6 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 		{
 			auto mem = buddy_manager.alloc(alloc_size);
 
-			if (!mem)
-				(void) mem;
-
 			REQUIRE(mem != nullptr);
 			REQUIRE(ptr_set.count(mem) == 0);
 
@@ -163,7 +160,6 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 
 	auto do_free = [&ptr_set, &buddy_manager](auto free_size = 0)
 	{
-		bool reclaim = false;
 		vector<pair<void *, size_t>> reclaim_ptrs{};
 
 		for (auto &ptr_size_p : ptr_set)
@@ -177,8 +173,6 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 
 		for (auto &ptr_size_p : reclaim_ptrs)
 			ptr_set.erase(ptr_size_p.first);
-
-		return reclaim;
 	};
 
 	vector<size_t> alloc_size_vector{};
