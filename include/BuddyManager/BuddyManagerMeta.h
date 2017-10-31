@@ -47,11 +47,11 @@ public:
 		memset(m_bitmap, 0, get_bitmap_size());
 	}
 
-	static constexpr Count get_num_sizeclasses();
+	static constexpr Count get_num_sizeclasses_const();
+	static Count get_num_sizeclasses();
 	static SizeClass get_sizeclass(Size size);
 	static Offset get_buddy(Offset ptr_offset, SizeClass szc);
 
-	Count num_sizeclasses() const;
 	Index get_bitmap_index(Offset ptr_offset, SizeClass szc) const;
 	void mark_block_as_free(Offset ptr_offset, SizeClass szc);
 	void mark_block_as_in_use(Offset ptr_offset, SizeClass szc);
@@ -75,7 +75,29 @@ private:
 };
 
 template <size_t PageSize, size_t MinAllocSize>
-constexpr Count BuddyManagerMeta<PageSize, MinAllocSize>::get_num_sizeclasses()
+constexpr Count BuddyManagerMeta<PageSize, MinAllocSize>::get_num_sizeclasses_const()
+{
+	constexpr auto const_log_2 = [](auto n)
+	{
+		size_t lz = 0;
+
+		while (n)
+		{
+			if (n >> (sizeof(n) * 8 - 1))
+				break;
+
+			lz++;
+			n <<= 1;
+		}
+
+		return sizeof(n) * 8 - lz - 1;
+	};
+
+	return const_log_2(PageSize) - const_log_2(MinAllocSize) + 1;
+}
+
+template <size_t PageSize, size_t MinAllocSize>
+Count BuddyManagerMeta<PageSize, MinAllocSize>::get_num_sizeclasses()
 {
 	return log_2(PageSize) - log_2(MinAllocSize) + 1;
 }

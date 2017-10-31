@@ -9,19 +9,6 @@
 #include <vector>
 #include <cassert>
 
-#ifdef __LINUX__
-#define leading_zeroes(x) __builtin_clzl(x)
-#endif /* __LINUX__ */
-
-#ifdef __APPLE__
-#define leading_zeroes(x) __builtin_clzl(x)
-#endif /* __APPLE__ */
-
-#ifdef _WIN32
-#include <intrin.h>
-#define leading_zeroes(x) __lzcnt64(x)
-#endif /* _WIN32 */
-
 namespace SmallAlloc
 {
 
@@ -51,7 +38,7 @@ private:
 	bool block_is_free(void *ptr, SizeClass szc) const;
 
 	void *m_managed_chunk;
-	BuddyFreeList m_freelist[BuddyManagerMeta<PageSize, MinAllocSize>::get_num_sizeclasses()];
+	BuddyFreeList m_freelist[BuddyManagerMeta<PageSize, MinAllocSize>::get_num_sizeclasses_const()];
 	BuddyManagerMeta<PageSize, MinAllocSize> m_meta;
 };
 

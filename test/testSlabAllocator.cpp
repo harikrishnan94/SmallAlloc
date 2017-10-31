@@ -2,20 +2,12 @@
 #include "BuddyManager/BuddyManager.h"
 #include "SlabAllocator.h"
 #include "test/catch.hpp"
+#include "test/testBase.h"
 
 #include <cstdlib>
 #include <random>
 #include <iostream>
 #include <unordered_set>
-
-static void *aligned_alloc(size_t align, size_t size)
-{
-	void *ptr = nullptr;
-
-	posix_memalign(&ptr, align, size);
-
-	return ptr;
-}
 
 using random_gen = std::ranlux24_base;
 
@@ -26,8 +18,8 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 	using namespace SmallAlloc::SlabAllocator;
 	using namespace SmallAlloc::BuddyManager;
 
-	constexpr auto SlabAllocSize = 64;
-	constexpr auto SlabPageSize = 4 * 1024;
+	constexpr uint32_t SlabAllocSize = 64;
+	constexpr uint32_t SlabPageSize = 4 * 1024;
 
 	std::random_device r;
 	std::seed_seq seed{r(), r(), r(), r(), r(), r(), r(), r()};
@@ -36,7 +28,7 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 
 	auto free_page = [](void *page, Size size)
 	{
-		free(page);
+		aligned_free(page);
 	};
 
 	BuddyManager bm{64 * 1024 * 1024 * 1024L, aligned_alloc, free_page};

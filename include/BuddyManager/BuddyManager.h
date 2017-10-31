@@ -85,7 +85,7 @@ private:
 
 	std::function<void *(Size, Size)> m_aligned_alloc_chunk;
 	std::function<void (void *, Size)> m_free_chunk;
-	BuddyFreeList m_freelist[BMMeta::get_num_sizeclasses()];
+	BuddyFreeList m_freelist[BMMeta::get_num_sizeclasses_const()];
 	Size m_alloc_limit;
 	Size m_chunk_count;
 	Count m_num_class_sizes;

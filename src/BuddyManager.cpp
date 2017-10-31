@@ -11,6 +11,9 @@
 #include <vector>
 
 using namespace SmallAlloc::BuddyManager;
+using Size = SmallAlloc::Size;
+using SizeClass = SmallAlloc::SizeClass;
+using Count = SmallAlloc::Count;
 
 #define PTR_TO_INT(p)	reinterpret_cast<uintptr_t>(p)
 #define INT_TO_PTR(i)	reinterpret_cast<void *>(i)

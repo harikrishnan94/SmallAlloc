@@ -9,6 +9,7 @@
 #include "BuddyManager/StandAloneBuddyManager.h"
 #include "BuddyManager/BuddyManager.h"
 #include "test/catch.hpp"
+#include "test/testBase.h"
 
 #include <memory>
 #include <cstdlib>
@@ -120,8 +121,7 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 
 	BuddyManager buddy_manager(BuddyManagerAllocLimit, [&](auto align, auto size)
 	{
-		void *ptr = nullptr;
-		posix_memalign(&ptr, align, size);
+		auto ptr = aligned_alloc(align, size);
 
 		if (ptr)
 			randomize_mem(rand_mem, ptr, size);
@@ -130,7 +130,7 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 	}, [](void *ptr,
 		  auto size)
 	{
-		free(ptr);
+		aligned_free(ptr);
 	});
 
 	auto BuddyPageSize = buddy_manager.get_page_size();
@@ -227,9 +227,8 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 
 		if (i == 0)
 		{
-			posix_memalign(&ptr, align, size);
 			i++;
-			return ptr;
+			return aligned_alloc(align, size);
 		}
 
 		return ptr;
