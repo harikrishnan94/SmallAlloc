@@ -31,7 +31,7 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 		aligned_free(page);
 	};
 
-	BuddyManager bm{64 * 1024 * 1024 * 1024L, aligned_alloc, free_page};
+	BuddyManager bm{64LL * 1024 * 1024 * 1024, aligned_alloc, free_page};
 	auto buddy_alloc = [&bm](Size align, Size size)
 	{
 		void *mem = bm.alloc(size);

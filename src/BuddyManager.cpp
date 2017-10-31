@@ -29,10 +29,10 @@ BuddyManager::~BuddyManager()
 {
 	std::for_each(m_chunk_meta_map.begin(), m_chunk_meta_map.end(), [this](auto cell)
 	{
-		if (cell.key)
+		if (cell.first)
 		{
-			m_free_chunk(cell.key, BuddyPageSize);
-			m_free_chunk(cell.val, sizeof(BMMetaNode));
+			m_free_chunk(cell.first, BuddyPageSize);
+			m_free_chunk(cell.second, sizeof(BMMetaNode));
 		}
 	});
 }

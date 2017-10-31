@@ -30,7 +30,7 @@ public:
 	constexpr static uint64_t DEFAULT_NUM_BUCKETS = 8;
 
 	PointerHashMap();
-	PointerHashMap(double load_factor, uint64_t num_buckets);
+	PointerHashMap(double load_factor, count_t num_buckets);
 
 	bool insert(pointer_t key, pointer_t val);
 	pointer_t find(pointer_t key);
@@ -38,11 +38,7 @@ public:
 	count_t size();
 	std::string dump();
 
-	struct Cell
-	{
-		pointer_t key;
-		pointer_t val;
-	};
+	using Cell = std::pair<pointer_t, pointer_t>;
 
 	using iterator = Cell *;
 	using const_iterator = const Cell *;

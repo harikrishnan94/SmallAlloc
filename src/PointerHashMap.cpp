@@ -57,7 +57,7 @@ index_t PointerHashMap::get_bucket(pointer_t key)
 	auto bucket = get_ideal_bucket(key);
 	auto buckets = m_buckets.get();
 
-	while (buckets[bucket].key && buckets[bucket].key != key)
+	while (buckets[bucket].first && buckets[bucket].first != key)
 		bucket = get_next_bucket(bucket);
 
 	return bucket;
@@ -73,7 +73,7 @@ bool PointerHashMap::is_between(index_t bucket, index_t start_bucket, index_t en
 pointer_t PointerHashMap::find(pointer_t key)
 {
 	auto &bucket = m_buckets[get_bucket(key)];
-	return key && bucket.key ? bucket.val : nullptr;
+	return key && bucket.first ? bucket.second : nullptr;
 }
 
 bool PointerHashMap::insert(pointer_t key, pointer_t val)
@@ -87,9 +87,9 @@ bool PointerHashMap::insert(pointer_t key, pointer_t val)
 	auto buckets = m_buckets.get();
 	auto bucket = get_bucket(key);
 
-	if (buckets[bucket].key != nullptr)
+	if (buckets[bucket].first != nullptr)
 	{
-		assert(buckets[bucket].key == key);
+		assert(buckets[bucket].first == key);
 		return false;
 	}
 
@@ -106,14 +106,14 @@ bool PointerHashMap::erase(pointer_t key)
 	auto bucket = get_bucket(key);
 	auto buckets = m_buckets.get();
 
-	if (buckets[bucket].key != key)
+	if (buckets[bucket].first != key)
 		return false;
 
 	for (auto neighbour = get_next_bucket(bucket);
-			buckets[neighbour].key;
+			buckets[neighbour].first;
 			neighbour = get_next_bucket(neighbour))
 	{
-		auto ideal = get_ideal_bucket(buckets[neighbour].key);
+		auto ideal = get_ideal_bucket(buckets[neighbour].first);
 
 		if (is_between(bucket, ideal, neighbour))
 		{
@@ -141,7 +141,7 @@ void PointerHashMap::resize()
 	auto buckets = old_buckets.get();
 
 	for (auto bucket = 0; bucket < old_num_buckets; bucket++)
-		insert(buckets[bucket].key, buckets[bucket].val);
+		insert(buckets[bucket].first, buckets[bucket].second);
 }
 
 std::string PointerHashMap::dump()
@@ -154,9 +154,9 @@ std::string PointerHashMap::dump()
 	{
 		str.append(std::to_string(bucket));
 		str.append(" --> ");
-		str.append(std::to_string(reinterpret_cast<uintptr_t>(buckets[bucket].key)));
+		str.append(std::to_string(reinterpret_cast<uintptr_t>(buckets[bucket].first)));
 		str.append(", ");
-		str.append(std::to_string(reinterpret_cast<uintptr_t>(buckets[bucket].val)));
+		str.append(std::to_string(reinterpret_cast<uintptr_t>(buckets[bucket].second)));
 		str.append("\n");
 	}
 
