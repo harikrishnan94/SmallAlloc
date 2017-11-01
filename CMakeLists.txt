@@ -131,7 +131,7 @@ if(BUILD_TESTS)
   add_test(NAME ${TEST_NAME} COMMAND "${TEST_PATH}/${TEST_NAME}")
 
   if(BUILD_COVERAGE_ANALYSIS)
-    include(CodeCoverage)
+    include(CodeCoverage.cmake)
     set(COVERAGE_EXTRACT '${PROJECT_PATH}/include/*' '${PROJECT_PATH}/src/*')
     setup_target_for_coverage(coverage "${TEST_NAME}" coverage)
   endif(BUILD_COVERAGE_ANALYSIS)
