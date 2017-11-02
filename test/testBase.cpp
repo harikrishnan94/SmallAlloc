@@ -2,7 +2,7 @@
 
 #include "test/catch.hpp"
 
-void *aligned_alloc(size_t align, size_t size)
+void *test_aligned_alloc(size_t align, size_t size)
 {
 #ifdef _WIN32
 	return _aligned_malloc(size, align);
@@ -13,7 +13,7 @@ void *aligned_alloc(size_t align, size_t size)
 #endif // _WIN32
 }
 
-void aligned_free(void *ptr)
+void test_aligned_free(void *ptr)
 {
 #ifdef _WIN32
 	_aligned_free(ptr);

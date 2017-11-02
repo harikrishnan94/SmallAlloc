@@ -121,7 +121,7 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 
 	BuddyManager buddy_manager(BuddyManagerAllocLimit, [&](auto align, auto size)
 	{
-		auto ptr = aligned_alloc(align, size);
+		auto ptr = test_aligned_alloc(align, size);
 
 		if (ptr)
 			randomize_mem(rand_mem, ptr, size);
@@ -130,7 +130,7 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 	}, [](void *ptr,
 		  auto size)
 	{
-		aligned_free(ptr);
+		test_aligned_free(ptr);
 	});
 
 	auto BuddyPageSize = buddy_manager.get_page_size();
@@ -228,7 +228,7 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 		if (i == 0)
 		{
 			i++;
-			return aligned_alloc(align, size);
+			return test_aligned_alloc(align, size);
 		}
 
 		return ptr;
