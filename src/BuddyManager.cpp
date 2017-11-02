@@ -201,12 +201,21 @@ void BuddyManager::free(void *ptr, Size size)
 	auto ptr_node = static_cast<BuddyFreeNode *>(ptr);
 	auto chunk = get_page(ptr);
 	auto meta = static_cast<BMMetaNode *>(m_chunk_meta_map.find(chunk));
+	auto szc = BMMeta::get_sizeclass(size);
 
 	assert(meta != nullptr);
 
-	if (free_internal(meta, ptr_node, BMMeta::get_sizeclass(size)))
+	if (free_internal(meta, ptr_node, szc))
 	{
-		free_chunk(meta);
+		if (m_chunk_count > 1)
+		{
+			free_chunk(meta);
+		}
+		else
+		{
+			auto &freelist = m_freelist[BMMeta::get_sizeclass(BuddyPageSize)];
+			freelist.push(static_cast<BuddyFreeNode *>(meta->m_managed_chunk));
+		}
 	}
 }
 

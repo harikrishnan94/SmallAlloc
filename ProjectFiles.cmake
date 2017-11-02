@@ -24,4 +24,5 @@ set(TEST_SRC
   "${TEST_SRC_PATH}/testUtility.cpp"
   "${TEST_SRC_PATH}/testBuddyManager.cpp"
   "${TEST_SRC_PATH}/testSlabAllocator.cpp"
+  "${TEST_SRC_PATH}/testHeap.cpp"
 )

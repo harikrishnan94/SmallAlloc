@@ -10,6 +10,7 @@
 #define COMMON_H
 
 #include <cstddef>
+#include <jemalloc/jemalloc.h>
 
 namespace SmallAlloc
 {

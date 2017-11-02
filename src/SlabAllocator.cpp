@@ -172,7 +172,7 @@ void SlabAllocator::free(void *ptr)
 	}
 	else
 	{
-		if (PAGE_IS_EMPTY(page->free(ptr)))
+		if (PAGE_IS_EMPTY(page->free(ptr)) && page_count > 1)
 		{
 			m_freelist.remove(page);
 			m_free_page(page->get_extra(), VOID_PTR(page), m_page_size);

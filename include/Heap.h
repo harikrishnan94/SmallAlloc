@@ -17,6 +17,8 @@ public:
 
 	void *alloc(size_t size);
 	void free(void *ptr, size_t ptr_size);
+	void remote_free(void *ptr, size_t ptr_size);
+	size_t size();
 
 private:
 	class HeapImpl;
