@@ -14,7 +14,7 @@
 // Build time configurable limits
 
 // Presets, if none is defined it will default to performance priority
-//#define ENABLE_UNLIMITED_CACHE
+#define ENABLE_UNLIMITED_CACHE
 //#define DISABLE_CACHE
 //#define ENABLE_SPACE_PRIORITY_CACHE
 

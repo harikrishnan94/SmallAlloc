@@ -13,10 +13,9 @@ set(SRC
 )
 
 # Set project main file.
-# Not Required
-# set(MAIN_SRC
-#   "${SRC_PATH}/main.cpp"
-# )
+set(MAIN_SRC
+  "${SRC_PATH}/benchmark.cpp"
+)
 
 # Set project test source files.
 set(TEST_SRC

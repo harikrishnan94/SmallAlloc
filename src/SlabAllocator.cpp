@@ -9,12 +9,14 @@
 #include "SlabAllocator.h"
 
 #include <cassert>
+#include <iostream>
 
 using namespace SmallAlloc::SlabAllocator;
 
-using SlabPageFreeList = SmallAlloc::utility::FreeList;
-using SlabPageRemoteFreeList = SmallAlloc::utility::FreeListAtomic;
-using FreeNode = SmallAlloc::utility::FreeList::Node;
+using SlabPageList = SmallAlloc::utility::List;
+using SlabFullPageList = SmallAlloc::utility::List;
+using SlabObjectRemoteFreeList = SmallAlloc::utility::FreeListAtomic;
+using FreeNode = SlabObjectRemoteFreeList::Node;
 
 #define VOID_PTR(p)			static_cast<void *>(p)
 #define FREE_NODE(p)		static_cast<FreeNode *>(p)
@@ -24,24 +26,20 @@ using FreeNode = SmallAlloc::utility::FreeList::Node;
 #define PTR_TO_INT(p)	reinterpret_cast<uintptr_t>(p)
 #define INT_TO_PTR(i)	reinterpret_cast<void *>(i)
 
-#define PAGE_IS_FULL(free_count)	((free_count) == 0)
-#define PAGE_IS_EMPTY(free_count)	((free_count) == m_max_alloc_count)
+#define PAGE_IS_FULL(page)	((page->free_count()) == 0)
+#define PAGE_WAS_FULL(page)	((page->free_count()) == 1)
+#define PAGE_IS_EMPTY(page)	((page->free_count()) == m_max_alloc_count)
 
-struct SlabAllocator::SlabPageHeader : public SmallAlloc::utility::List::Node
+struct SlabAllocator::SlabPageHeader : public SlabFullPageList::Node
 {
-	static SlabPageHeader *build(void *page, void *extra, uint32_t page_size, uint32_t alloc_size,
+	static SlabPageHeader *build(void *page, uint32_t page_size, uint32_t alloc_size,
 								 uint32_t max_alloc_count)
 	{
-		static_assert(sizeof(SlabAllocator::SlabPageHeader) == 48,
-					  "SlabPageHeader cannot be stored in 48 bytes");
+		static_assert(sizeof(SlabAllocator::SlabPageHeader) == 40,
+					  "SlabPageHeader cannot be stored in 40 bytes");
 		assert(max_alloc_count > 1);
 
-		return new (page) SlabPageHeader(extra, page_size, alloc_size, max_alloc_count);
-	}
-
-	void *get_extra()
-	{
-		return m_extra;
+		return new (page) SlabPageHeader(page_size, alloc_size, max_alloc_count);
 	}
 
 	Count free_count()
@@ -74,16 +72,15 @@ struct SlabAllocator::SlabPageHeader : public SmallAlloc::utility::List::Node
 	}
 
 private:
-	void *m_extra;
-	SlabPageFreeList m_native_fl;
+	utility::FreeList m_native_fl;
 	uint32_t m_alloc_size;
 	uint32_t m_num_free;
 	uint32_t m_freelist_size;
 	uint32_t padding;
 	char data[];
 
-	SlabPageHeader(void *extra, uint32_t page_size, uint32_t alloc_size, uint32_t max_alloc_count)
-		: m_extra(extra), m_native_fl(), m_alloc_size(alloc_size),
+	SlabPageHeader(uint32_t page_size, uint32_t alloc_size, uint32_t max_alloc_count)
+		: m_native_fl(), m_alloc_size(alloc_size),
 		  m_num_free(max_alloc_count), m_freelist_size(0)
 	{
 		assert(m_num_free > 0);
@@ -96,39 +93,45 @@ SlabAllocator::SlabAllocator(uint32_t alloc_size, uint32_t page_size,
 	: m_aligned_alloc_page(aligned_alloc_page), m_free_page(free_page),
 	  m_alloc_size(alloc_size), m_page_size(page_size),
 	  m_max_alloc_count((page_size - sizeof(SlabPageHeader)) / alloc_size),
-	  m_freelist(), m_fullpages_list(), m_remote_freelist()
+	  m_first_page(nullptr), m_freelist(), m_fullpages_list(), m_remote_freelist()
 {}
+
+SlabAllocator::SlabPageHeader *SlabAllocator::get_page(void *ptr)
+{
+	return SLAB_HEADER(INT_TO_PTR(PTR_TO_INT(ptr) - (PTR_TO_INT(ptr) & (m_page_size - 1))));
+}
+
+SmallAlloc::Size SlabAllocator::size()
+{
+	return m_page_count * m_page_size;
+}
+
+void SlabAllocator::remote_free(void *ptr)
+{
+	m_remote_freelist.push(FREE_NODE(ptr));
+}
 
 SlabAllocator::SlabPageHeader *SlabAllocator::alloc_page()
 {
-	auto page_info = m_aligned_alloc_page(m_page_size, m_page_size);
-	auto super_page = page_info.first;
-	auto page = page_info.second;
+	auto page = m_aligned_alloc_page(m_page_size, m_page_size);
 
 	if (!page)
 		return nullptr;
 
-	page_count++;
-	return SlabPageHeader::build(page, super_page, m_page_size, m_alloc_size, m_max_alloc_count);
+	m_page_count++;
+	return SlabPageHeader::build(page, m_page_size, m_alloc_size, m_max_alloc_count);
 }
 
-void *SlabAllocator::alloc_from_page(SlabPageHeader *page, bool new_page)
+void *SlabAllocator::alloc_from_first_page()
 {
-	auto ret_ptr = page->alloc();
+	auto ret_ptr = m_first_page->alloc();
 
 	assert(ret_ptr != nullptr);
 
-	if (PAGE_IS_FULL(page->free_count()))
+	if (PAGE_IS_FULL(m_first_page))
 	{
-		m_freelist.remove(page);
-		m_fullpages_list.push_back(page);
-	}
-	else
-	{
-		if (new_page)
-			m_freelist.push_front(page);
-		else
-			m_freelist.move_front(page);
+		m_fullpages_list.push_back(m_first_page);
+		m_first_page = nullptr;
 	}
 
 	return ret_ptr;
@@ -136,63 +139,57 @@ void *SlabAllocator::alloc_from_page(SlabPageHeader *page, bool new_page)
 
 void *SlabAllocator::alloc_from_new_page()
 {
-	auto page = alloc_page();
+	assert(m_first_page == nullptr);
 
-	if (!page)
-		return nullptr;
+	m_first_page = alloc_page();
 
-	return alloc_from_page(page, true);
+	return m_first_page ? alloc_from_first_page() : nullptr;
 }
 
 void *SlabAllocator::alloc()
 {
-	if (!m_freelist.empty())
-		return alloc_from_page(SLAB_HEADER(m_freelist.front()), false);
+	if (m_first_page)
+	{
+		return alloc_from_first_page();
 
-	if (reclaim_remote_free())
-		return alloc_from_page(SLAB_HEADER(m_freelist.front()), false);
+		if (reclaim_remote_free())
+			return alloc_from_first_page();
+	}
+
+	if (!m_freelist.empty())
+	{
+		m_first_page = SLAB_HEADER(m_freelist.pop_front());
+		return alloc_from_first_page();
+	}
 
 	return alloc_from_new_page();
-}
-
-SlabAllocator::SlabPageHeader *SlabAllocator::get_page(void *ptr)
-{
-	return SLAB_HEADER(INT_TO_PTR(PTR_TO_INT(ptr) - (PTR_TO_INT(ptr) & (m_page_size - 1))));
 }
 
 void SlabAllocator::free(void *ptr)
 {
 	auto page = get_page(ptr);
 
-	if (PAGE_IS_FULL(page->free_count()))
+	page->free(ptr);
+
+	if (PAGE_WAS_FULL(page))
 	{
-		page->free(ptr);
+		assert(page != m_first_page);
+
 		m_fullpages_list.remove(page);
-		m_freelist.push_front(page);
+		m_freelist.push_back(page);
 	}
 	else
 	{
-		if (PAGE_IS_EMPTY(page->free(ptr)) && page_count > 1)
+		if (PAGE_IS_EMPTY(page))
 		{
-			m_freelist.remove(page);
-			m_free_page(page->get_extra(), VOID_PTR(page), m_page_size);
-			page_count--;
-		}
-		else
-		{
-			m_freelist.move_front(page);
+			if (page != m_first_page)
+			{
+				m_freelist.remove(page);
+				m_free_page(page, m_page_size);
+				m_page_count--;
+			}
 		}
 	}
-}
-
-SmallAlloc::Size SlabAllocator::size()
-{
-	return page_count * m_page_size;
-}
-
-void SlabAllocator::remote_free(void *ptr)
-{
-	m_remote_freelist.push(FREE_NODE(ptr));
 }
 
 bool SlabAllocator::reclaim_remote_free()
@@ -210,5 +207,5 @@ bool SlabAllocator::reclaim_remote_free()
 	}
 	while (free_node);
 
-	return !PAGE_IS_FULL(SLAB_HEADER(m_freelist.front())->free_count());
+	return m_first_page != nullptr;
 }

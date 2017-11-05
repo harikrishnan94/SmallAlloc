@@ -2,6 +2,10 @@
 #include "SlabSizeClass.h"
 #include "SlabAllocator.h"
 #include "Heap.h"
+#include "jemalloc/jemalloc.h"
+
+void *je_aligned_alloc(size_t, size_t);
+void je_free(void *);
 
 namespace SmallAlloc
 {
@@ -35,12 +39,11 @@ public:
 
 		auto buddy_alloc = [impl](Size align, Size size)
 		{
-			return std::make_pair(static_cast<void *>(&impl->bm), impl->bm.alloc(size));
+			return impl->bm.alloc(size);
 		};
-		auto buddy_free = [](void *extra, void *page, Size size)
+		auto buddy_free = [impl](void *page, Size size)
 		{
-			auto bm = static_cast<BuddyManager::BuddyManager *>(extra);
-			bm->free(page, size);
+			impl->bm.free(page, size);
 		};
 
 		for (auto szc = 0; szc < NUM_SIZE_CLASSES; szc++)

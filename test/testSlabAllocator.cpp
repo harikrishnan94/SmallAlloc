@@ -34,14 +34,11 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 	BuddyManager bm{64LL * 1024 * 1024 * 1024, test_aligned_alloc, free_page};
 	auto buddy_alloc = [&bm](Size align, Size size)
 	{
-		void *mem = bm.alloc(size);
-		REQUIRE(mem != nullptr);
-		return std::make_pair(static_cast<void *>(&bm), mem);
+		return bm.alloc(size);
 	};
-	auto buddy_free = [](void *extra, void *page, Size size)
+	auto buddy_free = [&bm](void *page, Size size)
 	{
-		auto bm = static_cast<BuddyManager *>(extra);
-		bm->free(page, size);
+		bm.free(page, size);
 	};
 
 	SlabAllocator slab{SlabAllocSize, SlabPageSize, buddy_alloc, buddy_free};
@@ -70,7 +67,7 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 		return uniform_dist(rand_op);
 	};
 
-	int testIterations = 100 * 1000;
+	int testIterations = 100 * 1024;
 
 	for (int i = 0; i < testIterations; i++)
 	{
@@ -119,13 +116,13 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 
 	slab.reclaim_remote_free();
 
-	// REQUIRE(slab.size() == 0);
+	REQUIRE(slab.size() == SlabPageSize);
 
 	SlabAllocator dummy{SlabAllocSize, SlabPageSize, [](Size, Size)
 	{
 		void *null = nullptr;
-		return std::make_pair(null, null);
-	}, [](void *, void *, Size) {}};
+		return null;
+	}, [](void *, Size) {}};
 
 	REQUIRE(dummy.alloc() == nullptr);
 	REQUIRE(dummy.size() == 0);

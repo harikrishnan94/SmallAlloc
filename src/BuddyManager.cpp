@@ -207,7 +207,7 @@ void BuddyManager::free(void *ptr, Size size)
 
 	if (free_internal(meta, ptr_node, szc))
 	{
-		if (m_chunk_count > 1)
+		if (m_chunk_count)
 		{
 			free_chunk(meta);
 		}
