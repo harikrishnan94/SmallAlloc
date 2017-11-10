@@ -206,7 +206,18 @@ void BuddyManager::free(void *ptr, Size size)
 	assert(meta != nullptr);
 
 	if (free_internal(meta, ptr_node, szc))
-		free_chunk(meta);
+	{
+		if (m_chunk_count > 1)
+		{
+			free_chunk(meta);
+		}
+		else
+		{
+			szc = BMMeta::get_sizeclass(BuddyPageSize);
+			auto &freelist = m_freelist[szc];
+			freelist.push(static_cast<BuddyFreeNode *>(meta->m_managed_chunk));
+		}
+	}
 }
 
 SmallAlloc::Size BuddyManager::size()

@@ -275,12 +275,12 @@ int main(int argc, char** argv)
 
 	benchmark::RegisterBenchmark("SmallAllocTest", BM_SMalloc, SMALLOC_ALLOCATOR, op_vec,
 								 alloc_size_vec, free_ind_vec, unfreed_ind_vec);
-	// benchmark::RegisterBenchmark("LibcMallocTest", BM_SMalloc, LIBC_ALLOCATOR, op_vec,
-	// 							 alloc_size_vec, free_ind_vec, unfreed_ind_vec);
-	// benchmark::RegisterBenchmark("RpMallocTest", BM_SMalloc, RPMALLOC_ALLOCATOR, op_vec,
-	// 							 alloc_size_vec, free_ind_vec, unfreed_ind_vec);
-	// benchmark::RegisterBenchmark("JeMallocTest", BM_SMalloc, JEMALLOC_ALLOCATOR, op_vec,
-	// 							 alloc_size_vec, free_ind_vec, unfreed_ind_vec);
+	benchmark::RegisterBenchmark("LibcMallocTest", BM_SMalloc, LIBC_ALLOCATOR, op_vec,
+								 alloc_size_vec, free_ind_vec, unfreed_ind_vec);
+	benchmark::RegisterBenchmark("RpMallocTest", BM_SMalloc, RPMALLOC_ALLOCATOR, op_vec,
+								 alloc_size_vec, free_ind_vec, unfreed_ind_vec);
+	benchmark::RegisterBenchmark("JeMallocTest", BM_SMalloc, JEMALLOC_ALLOCATOR, op_vec,
+								 alloc_size_vec, free_ind_vec, unfreed_ind_vec);
 
 	benchmark::Initialize(&argc, argv);
 	benchmark::RunSpecifiedBenchmarks();

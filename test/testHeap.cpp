@@ -77,7 +77,10 @@ TEST_CASE("HeapTest", "[allocator]")
 				auto mem = heap.alloc(alloc_size);
 
 				if (mem)
+				{
+					memset(mem, 0x7F, alloc_size);
 					*reinterpret_cast<size_t *>(mem) = alloc_size;
+				}
 
 				REQUIRE(mem != nullptr);
 				REQUIRE(ptr_set.count(mem) == 0);

@@ -145,6 +145,9 @@ TEST_CASE("BuddyManager Test", "[allocator]")
 		{
 			auto mem = buddy_manager.alloc(alloc_size);
 
+			if (!mem)
+				(void) mem;
+
 			REQUIRE(mem != nullptr);
 			REQUIRE(ptr_set.count(mem) == 0);
 

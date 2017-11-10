@@ -77,6 +77,12 @@ TEST_CASE("SlabAllocatorTest", "[allocator]")
 			{
 				auto mem = slab.alloc();
 
+				if (mem)
+				{
+					memset(mem, 0x7F, SlabAllocSize);
+					*reinterpret_cast<size_t *>(mem) = SlabAllocSize;
+				}
+
 				REQUIRE(mem != nullptr);
 				REQUIRE(ptr_set.count(mem) == 0);
 				ptr_set.insert(mem);
